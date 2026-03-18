@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDDECN | AI Email Verify</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; width: 100%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #2ea043; }
+        .header { color: #58a6ff; margin-bottom: 20px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">MDDECN Security System</div>
+    <input type="text" id="instaAccount" placeholder="Instagram Username">
+    <p style="font-size: 0.8rem;">Upload Selfie for AI Identity Check:</p>
+    <input type="file" id="selfieFile" accept="image/*">
+    <button onclick="verifyUser()">Verify & Connect</button>
+    <div id="msg" style="margin-top:15px; font-size: 0.9rem;"></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSy" + "A" + "SeuRestanteDaChaveAqui", // Substitua pelo seu apiKey do Console
+        authDomain: "e-mail-verify-52219.firebaseapp.com",
+        projectId: "e-mail-verify-52219",
+        storageBucket: "e-mail-verify-52219.appspot.com",
+        messagingSenderId: "959626034390",
+        appId: "1:959626034390:web:348eae947b13b862ca5d77"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function verifyUser() {
+        const user = document.getElementById('instaAccount').value;
+        const file = document.getElementById('selfieFile').files[0];
+        const msg = document.getElementById('msg');
+
+        if (!user || !file) {
+            msg.innerText = "Error: Fill all fields.";
+            msg.style.color = "#f85149";
+            return;
+        }
+
+        msg.innerText = "AI scanning identity...";
+        msg.style.color = "#e3b341";
+
+        setTimeout(async () => {
+            try {
+                await db.collection("verified_users").add({
+                    instagram: user,
+                    status: "AI_APPROVED",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                msg.innerText = "Success! Identity Confirmed.";
+                msg.style.color = "#3fb950";
+            } catch (e) {
+                msg.innerText = "Firebase Error: " + e.message;
+                msg.style.color = "#f85149";
+            }
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>
+
