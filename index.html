@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MDDECN | AI Contact Mediator</title>
+    <title>MDDECN | Secure Contact Mediator</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
     <style>
@@ -14,21 +14,22 @@
         textarea { height: 100px; resize: none; }
         button { width: 100%; padding: 14px; background: #238636; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
         button:hover { background: #2ea043; }
-        #status { margin-top: 15px; font-size: 0.85rem; text-align: center; }
+        #status { margin-top: 20px; font-size: 0.9rem; text-align: center; line-height: 1.5; }
+        .result-box { background: #238636; color: white; padding: 15px; border-radius: 8px; border: 1px solid #3fb950; margin-top: 10px; font-weight: bold; word-break: break-all; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header">Secure Request System</div>
+    <div class="header">MDDECN Security System</div>
     
-    <input type="text" id="target" placeholder="Target Instagram (e.g. @user)">
+    <input type="text" id="target" placeholder="Target Instagram (e.g. @username)">
     
-    <textarea id="reason" placeholder="Explain your justification here..."></textarea>
+    <textarea id="reason" placeholder="Enter professional justification (min. 35 chars)..."></textarea>
     
     <input type="text" id="proofUrl" placeholder="Link to Proof Image (ImgBB/Imgur)">
     
-    <button onclick="sendToFirestore()">Submit Request</button>
+    <button onclick="runSecureMediator()">Verify & Access Contact</button>
     
     <div id="status"></div>
 </div>
@@ -38,6 +39,7 @@
         apiKey: "AIzaSyCFa-AAOve_7gsoFiOYso8RsMQedzzmG3s",
         authDomain: "e-mail-verify-52219.firebaseapp.com",
         projectId: "e-mail-verify-52219",
+        storageBucket: "e-mail-verify-52219.firebasestorage.app",
         messagingSenderId: "959626034390",
         appId: "1:959626034390:web:348eae947b13b862ca5d77"
     };
@@ -45,39 +47,70 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    async function sendToFirestore() {
+    async function fetchContactEmail(targetUser) {
+        const status = document.getElementById('status');
+        const cleanUser = targetUser.replace('@', '').trim().toLowerCase();
+        
+        try {
+            const docRef = db.collection("database_emails").doc(cleanUser);
+            const doc = await docRef.get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                status.innerHTML = `<div class="result-box">
+                    ACCESS GRANTED<br>
+                    Email: ${data.email}
+                </div>`;
+            } else {
+                status.innerText = "✅ Approved, but email not found in MDDECN database.";
+                status.style.color = "#58a6ff";
+            }
+        } catch (e) {
+            status.innerText = "Database Search Error: " + e.message;
+        }
+    }
+
+    async function runSecureMediator() {
         const target = document.getElementById('target').value;
         const reason = document.getElementById('reason').value;
         const proofUrl = document.getElementById('proofUrl').value;
         const status = document.getElementById('status');
 
         if (!target || !reason) {
-            status.innerText = "Error: Fill all required fields.";
+            status.innerText = "Error: All fields are required.";
             status.style.color = "#f85149";
             return;
         }
 
-        status.innerText = "Sending request to MDDECN Firestore...";
+        status.innerText = "MDDECN AI is evaluating your intent...";
         status.style.color = "#e3b341";
+
+        let finalStatus = "REJECTED";
+        const keywords = ["work", "job", "business", "proposal", "partnership", "urgent", "contract"];
+        const containsKeyword = keywords.some(word => reason.toLowerCase().includes(word));
+        const isDescriptive = reason.length > 35;
+        const hasLink = proofUrl.startsWith("http");
+
+        if (isDescriptive && containsKeyword && hasLink) {
+            finalStatus = "APPROVED";
+        }
 
         try {
             await db.collection("contact_requests").add({
                 target_user: target,
                 justification: reason,
-                proof_link: proofUrl || "No link provided",
-                status: "PENDING_AI_REVIEW",
-                created_at: firebase.firestore.FieldValue.serverTimestamp()
+                status: finalStatus,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            status.innerText = "Success! Request saved in Database.";
-            status.style.color = "#3fb950";
-            
-            document.getElementById('target').value = '';
-            document.getElementById('reason').value = '';
-            document.getElementById('proofUrl').value = '';
-
+            if (finalStatus === "APPROVED") {
+                await fetchContactEmail(target);
+            } else {
+                status.innerText = "❌ Denied: Justification too weak or invalid evidence link.";
+                status.style.color = "#f85149";
+            }
         } catch (error) {
-            status.innerText = "Firestore Error: " + error.message;
+            status.innerText = "System Error: " + error.message;
             status.style.color = "#f85149";
         }
     }
